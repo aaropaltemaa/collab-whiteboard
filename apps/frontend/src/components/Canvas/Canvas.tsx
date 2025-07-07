@@ -1,6 +1,7 @@
 import { Stage, Layer, Line } from "react-konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import io, { Socket } from "socket.io-client";
 
 type Line = {
   points: number[];
@@ -9,6 +10,21 @@ type Line = {
 const Canvas = () => {
   const [lines, setLines] = useState<Line[]>([]);
   const isDrawing = useRef(false);
+  const socket = useRef<Socket | null>(null);
+
+  useEffect(() => {
+    socket.current = io("http://localhost:4000");
+
+    socket.current.on("connect", () => {
+      console.log("Connected to server");
+    });
+
+    return () => {
+      if (socket.current) {
+        socket.current.disconnect();
+      }
+    };
+  }, []);
 
   const handleMouseDown = (e: KonvaEventObject<MouseEvent>) => {
     isDrawing.current = true;
@@ -42,12 +58,12 @@ const Canvas = () => {
     const updatedLines = [...lines.slice(0, -1), updatedLine];
 
     setLines(updatedLines);
-    console.log(updatedLines)
+    console.log(updatedLines);
   };
 
   const handleMouseUp = () => {
     isDrawing.current = false;
-  }
+  };
 
   return (
     <Stage
@@ -60,16 +76,15 @@ const Canvas = () => {
     >
       <Layer>
         {lines.map((line, index) => (
-  <Line
-    key={index}
-    points={line.points}
-    stroke="black"
-    strokeWidth={2}
-    lineCap="round"
-    lineJoin="round"
-  />
-))}
-
+          <Line
+            key={index}
+            points={line.points}
+            stroke="black"
+            strokeWidth={2}
+            lineCap="round"
+            lineJoin="round"
+          />
+        ))}
       </Layer>
     </Stage>
   );
