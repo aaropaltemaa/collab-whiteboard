@@ -1,4 +1,4 @@
-import { Stage, Layer } from "react-konva";
+import { Stage, Layer, Line } from "react-konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { useState, useRef } from "react";
 
@@ -25,6 +25,7 @@ const Canvas = () => {
     if (!isDrawing.current) return;
 
     const stage = e.target.getStage();
+    if (!stage) return;
     const point = stage.getPointerPosition();
     if (!point) return;
 
@@ -44,15 +45,32 @@ const Canvas = () => {
     console.log(updatedLines)
   };
 
+  const handleMouseUp = () => {
+    isDrawing.current = false;
+  }
+
   return (
     <Stage
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
       width={window.innerWidth}
       height={window.innerHeight}
       style={{ background: "#fff" }}
     >
-      <Layer></Layer>
+      <Layer>
+        {lines.map((line, index) => (
+  <Line
+    key={index}
+    points={line.points}
+    stroke="black"
+    strokeWidth={2}
+    lineCap="round"
+    lineJoin="round"
+  />
+))}
+
+      </Layer>
     </Stage>
   );
 };
