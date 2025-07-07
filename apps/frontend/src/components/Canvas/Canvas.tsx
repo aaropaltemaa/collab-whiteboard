@@ -19,6 +19,13 @@ const Canvas = () => {
       console.log("Connected to server");
     });
 
+    socket.current.on("drawing", (data) => {
+      console.log("Received drawing", data);
+
+      // Append the incoming line to state
+      setLines((prevLines) => [...prevLines, { points: data.points }]);
+    });
+
     return () => {
       if (socket.current) {
         socket.current.disconnect();
@@ -58,7 +65,11 @@ const Canvas = () => {
     const updatedLines = [...lines.slice(0, -1), updatedLine];
 
     setLines(updatedLines);
-    console.log(updatedLines);
+    if (socket.current) {
+      socket.current.emit("drawing", {
+        points: updatedLine.points,
+      });
+    }
   };
 
   const handleMouseUp = () => {

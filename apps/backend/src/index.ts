@@ -18,6 +18,15 @@ app.get("/api/health", (_req, res) => {
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
+
+    socket.on("drawing", (data) => {
+    // Broadcast to all other clients
+    socket.broadcast.emit("drawing", data);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
 });
 
 server.listen(4000, () => {
