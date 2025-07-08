@@ -11,16 +11,21 @@ const Canvas = () => {
   const [lines, setLines] = useState<Line[]>([]);
   const isDrawing = useRef(false);
   const socket = useRef<Socket | null>(null);
+  const socketId = useRef<string | null>(null);
 
   useEffect(() => {
     socket.current = io("http://localhost:4000");
 
     socket.current.on("connect", () => {
-      console.log("Connected to server");
+      socketId.current = socket.current?.id ?? null;
+      console.log("Connected to server, socket ID:", socketId.current);
     });
 
     socket.current.on("drawing", (data) => {
-      console.log("Received drawing", data);
+      if (data.senderId === socketId.current) {
+        // Ignore our own drawing
+        return;
+      }
 
       // Append the incoming line to state
       setLines((prevLines) => [...prevLines, { points: data.points }]);
@@ -68,6 +73,7 @@ const Canvas = () => {
     if (socket.current) {
       socket.current.emit("drawing", {
         points: updatedLine.points,
+        senderId: socketId.current,
       });
     }
   };
