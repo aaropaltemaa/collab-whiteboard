@@ -9,6 +9,9 @@ type Line = {
 
 const Canvas = () => {
   const [lines, setLines] = useState<Line[]>([]);
+  const [selectedTool, setSelectedTool] = useState<
+    "pen" | "rectangle" | "ellipse"
+  >("pen");
   const isDrawing = useRef(false);
   const socket = useRef<Socket | null>(null);
   const socketId = useRef<string | null>(null);
@@ -83,27 +86,47 @@ const Canvas = () => {
   };
 
   return (
-    <Stage
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      width={window.innerWidth}
-      height={window.innerHeight}
-      style={{ background: "#fff" }}
-    >
-      <Layer>
-        {lines.map((line, index) => (
-          <Line
-            key={index}
-            points={line.points}
-            stroke="black"
-            strokeWidth={2}
-            lineCap="round"
-            lineJoin="round"
-          />
+    <>
+      <div className="flex gap-2 p-2 bg-gray-100 border-b border-gray-300">
+        {["pen", "rectangle", "ellipse"].map((tool) => (
+          <button
+            key={tool}
+            onClick={() =>
+              setSelectedTool(tool as "pen" | "rectangle" | "ellipse")
+            }
+            className={`px-3 py-1 rounded ${
+              selectedTool === tool
+                ? "bg-blue-500 text-white"
+                : "bg-white text-gray-800 border border-gray-300 hover:bg-gray-200"
+            }`}
+          >
+            {tool.charAt(0).toUpperCase() + tool.slice(1)}
+          </button>
         ))}
-      </Layer>
-    </Stage>
+      </div>
+
+      <Stage
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        width={window.innerWidth}
+        height={window.innerHeight}
+        style={{ background: "#fff" }}
+      >
+        <Layer>
+          {lines.map((line, index) => (
+            <Line
+              key={index}
+              points={line.points}
+              stroke="black"
+              strokeWidth={2}
+              lineCap="round"
+              lineJoin="round"
+            />
+          ))}
+        </Layer>
+      </Stage>
+    </>
   );
 };
 
