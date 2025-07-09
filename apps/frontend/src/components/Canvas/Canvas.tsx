@@ -34,6 +34,9 @@ const Canvas = () => {
   const [selectedTool, setSelectedTool] = useState<
     "pen" | "rectangle" | "ellipse"
   >("pen");
+  const [selectedShapeIndex, setSelectedShapeIndex] = useState<number | null>(
+    null
+  );
   const [selectedColor, setSelectedColor] = useState<string>("#000000");
   const [selectedStrokeWidth, setSelectedStrokeWidth] = useState<number>(2);
 
@@ -59,6 +62,16 @@ const Canvas = () => {
       setShapes((prevShapes) => [...prevShapes, incomingShape]);
     });
 
+    socket.current.on("move-shape", (data) => {
+      if (data.senderId === socketId.current) return;
+
+      setShapes((prev) => {
+        const updated = [...prev];
+        updated[data.index] = data.shape;
+        return updated;
+      });
+    });
+
     return () => {
       if (socket.current) {
         socket.current.disconnect();
@@ -67,6 +80,12 @@ const Canvas = () => {
   }, []);
 
   const handleMouseDown = (e: KonvaEventObject<MouseEvent>) => {
+    // Skip if clicking an existing shape
+    const clickedOnEmpty = e.target === e.target.getStage();
+    if (!clickedOnEmpty) {
+      return;
+    }
+
     const stage = e.target.getStage();
     if (!stage) return;
     const pos = stage.getPointerPosition();
@@ -169,6 +188,33 @@ const Canvas = () => {
     }
   };
 
+  const handleDragMoveOrEnd = (
+    e: KonvaEventObject<DragEvent>,
+    index: number
+  ) => {
+    const pos = e.target.position();
+    const shape = shapes[index];
+
+    if (!shape) return;
+
+    let updatedShape: Shape;
+
+    if (shape.type === "rectangle") {
+      updatedShape = { ...shape, x: pos.x, y: pos.y };
+    } else if (shape.type === "ellipse") {
+      updatedShape = { ...shape, x: pos.x, y: pos.y };
+    } else {
+      // Lines are not draggable
+      return;
+    }
+
+    const updatedShapes = [...shapes];
+    updatedShapes[index] = updatedShape;
+    setShapes(updatedShapes);
+
+    // Optionally emit on drag end
+  };
+
   return (
     <>
       <div className="flex gap-2 p-2 bg-gray-100 border-b border-gray-300 items-center">
@@ -241,6 +287,27 @@ const Canvas = () => {
                   height={shape.height}
                   stroke={shape.color}
                   strokeWidth={shape.strokeWidth}
+                  onClick={() => setSelectedShapeIndex(index)}
+                  shadowBlur={selectedShapeIndex === index ? 10 : 0}
+                  shadowColor={selectedShapeIndex === index ? "blue" : ""}
+                  shadowOpacity={0.5}
+                  draggable
+                  onDragMove={(e) => handleDragMoveOrEnd(e, index)}
+                  onDragEnd={(e) => {
+                    handleDragMoveOrEnd(e, index);
+
+                    if (socket.current) {
+                      socket.current.emit("move-shape", {
+                        index,
+                        shape: {
+                          ...shapes[index],
+                          x: e.target.x(),
+                          y: e.target.y(),
+                        },
+                        senderId: socketId.current,
+                      });
+                    }
+                  }}
                 />
               );
             }
@@ -254,6 +321,27 @@ const Canvas = () => {
                   radiusY={shape.radiusY}
                   stroke={shape.color}
                   strokeWidth={shape.strokeWidth}
+                  onClick={() => setSelectedShapeIndex(index)}
+                  shadowBlur={selectedShapeIndex === index ? 10 : 0}
+                  shadowColor={selectedShapeIndex === index ? "blue" : ""}
+                  shadowOpacity={0.5}
+                  draggable
+                  onDragMove={(e) => handleDragMoveOrEnd(e, index)}
+                  onDragEnd={(e) => {
+                    handleDragMoveOrEnd(e, index);
+
+                    if (socket.current) {
+                      socket.current.emit("move-shape", {
+                        index,
+                        shape: {
+                          ...shapes[index],
+                          x: e.target.x(),
+                          y: e.target.y(),
+                        },
+                        senderId: socketId.current,
+                      });
+                    }
+                  }}
                 />
               );
             }

@@ -27,6 +27,10 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });
+  socket.on("move-shape", (data) => {
+    socket.broadcast.emit("move-shape", data);
+});
+
 });
 
 server.listen(4000, () => {
