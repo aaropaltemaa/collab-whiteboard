@@ -1,4 +1,4 @@
-import { Stage, Layer, Line, Rect, Ellipse } from "react-konva";
+import { Stage, Layer, Line, Rect, Ellipse, Text, Group } from "react-konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { useState, useRef, useEffect } from "react";
 import io, { Socket } from "socket.io-client";
@@ -9,6 +9,7 @@ type Shape =
       points: number[];
       color: string;
       strokeWidth: number;
+      text?: string;
     }
   | {
       type: "rectangle";
@@ -18,6 +19,7 @@ type Shape =
       height: number;
       color: string;
       strokeWidth: number;
+      text?: string;
     }
   | {
       type: "ellipse";
@@ -27,6 +29,7 @@ type Shape =
       radiusY: number;
       color: string;
       strokeWidth: number;
+      text?: string;
     };
 
 const Canvas = () => {
@@ -37,6 +40,10 @@ const Canvas = () => {
   const [selectedShapeIndex, setSelectedShapeIndex] = useState<number | null>(
     null
   );
+  const [editingShapeIndex, setEditingShapeIndex] = useState<number | null>(
+    null
+  );
+  const [editingText, setEditingText] = useState<string>("");
   const [selectedColor, setSelectedColor] = useState<string>("#000000");
   const [selectedStrokeWidth, setSelectedStrokeWidth] = useState<number>(2);
 
@@ -63,6 +70,16 @@ const Canvas = () => {
     });
 
     socket.current.on("move-shape", (data) => {
+      if (data.senderId === socketId.current) return;
+
+      setShapes((prev) => {
+        const updated = [...prev];
+        updated[data.index] = data.shape;
+        return updated;
+      });
+    });
+
+    socket.current.on("update-text", (data) => {
       if (data.senderId === socketId.current) return;
 
       setShapes((prev) => {
@@ -215,6 +232,23 @@ const Canvas = () => {
     // Optionally emit on drag end
   };
 
+  const shapeBeingEdited =
+    editingShapeIndex !== null ? shapes[editingShapeIndex] : null;
+
+  const inputTop =
+    shapeBeingEdited && shapeBeingEdited.type === "rectangle"
+      ? shapeBeingEdited.y
+      : shapeBeingEdited && shapeBeingEdited.type === "ellipse"
+        ? shapeBeingEdited.y - shapeBeingEdited.radiusY
+        : 0;
+
+  const inputLeft =
+    shapeBeingEdited && shapeBeingEdited.type === "rectangle"
+      ? shapeBeingEdited.x
+      : shapeBeingEdited && shapeBeingEdited.type === "ellipse"
+        ? shapeBeingEdited.x - shapeBeingEdited.radiusX
+        : 0;
+
   return (
     <>
       <div className="flex gap-2 p-2 bg-gray-100 border-b border-gray-300 items-center">
@@ -279,70 +313,107 @@ const Canvas = () => {
 
             if (shape.type === "rectangle") {
               return (
-                <Rect
+                <Group
                   key={index}
-                  x={shape.x}
-                  y={shape.y}
-                  width={shape.width}
-                  height={shape.height}
-                  stroke={shape.color}
-                  strokeWidth={shape.strokeWidth}
                   onClick={() => setSelectedShapeIndex(index)}
-                  shadowBlur={selectedShapeIndex === index ? 10 : 0}
-                  shadowColor={selectedShapeIndex === index ? "blue" : ""}
-                  shadowOpacity={0.5}
-                  draggable
-                  onDragMove={(e) => handleDragMoveOrEnd(e, index)}
-                  onDragEnd={(e) => {
-                    handleDragMoveOrEnd(e, index);
-
-                    if (socket.current) {
-                      socket.current.emit("move-shape", {
-                        index,
-                        shape: {
-                          ...shapes[index],
-                          x: e.target.x(),
-                          y: e.target.y(),
-                        },
-                        senderId: socketId.current,
-                      });
-                    }
+                  onDblClick={() => {
+                    setEditingShapeIndex(index);
+                    setEditingText(shape.text || "");
                   }}
-                />
+                >
+                  <Rect
+                    key={index}
+                    x={shape.x}
+                    y={shape.y}
+                    width={shape.width}
+                    height={shape.height}
+                    stroke={shape.color}
+                    strokeWidth={shape.strokeWidth}
+                    onClick={() => setSelectedShapeIndex(index)}
+                    shadowBlur={selectedShapeIndex === index ? 10 : 0}
+                    shadowColor={selectedShapeIndex === index ? "blue" : ""}
+                    shadowOpacity={0.5}
+                    draggable
+                    onDragMove={(e) => handleDragMoveOrEnd(e, index)}
+                    onDragEnd={(e) => {
+                      handleDragMoveOrEnd(e, index);
+
+                      if (socket.current) {
+                        socket.current.emit("move-shape", {
+                          index,
+                          shape: {
+                            ...shapes[index],
+                            x: e.target.x(),
+                            y: e.target.y(),
+                          },
+                          senderId: socketId.current,
+                        });
+                      }
+                    }}
+                  />
+                  {shape.text && (
+                    <Text
+                      text={shape.text}
+                      x={shape.x + 5}
+                      y={shape.y + 5}
+                      fontSize={16}
+                      fill="black"
+                    />
+                  )}
+                </Group>
               );
             }
+
             if (shape.type === "ellipse") {
               return (
-                <Ellipse
+                <Group
                   key={index}
-                  x={shape.x}
-                  y={shape.y}
-                  radiusX={shape.radiusX}
-                  radiusY={shape.radiusY}
-                  stroke={shape.color}
-                  strokeWidth={shape.strokeWidth}
                   onClick={() => setSelectedShapeIndex(index)}
-                  shadowBlur={selectedShapeIndex === index ? 10 : 0}
-                  shadowColor={selectedShapeIndex === index ? "blue" : ""}
-                  shadowOpacity={0.5}
-                  draggable
-                  onDragMove={(e) => handleDragMoveOrEnd(e, index)}
-                  onDragEnd={(e) => {
-                    handleDragMoveOrEnd(e, index);
-
-                    if (socket.current) {
-                      socket.current.emit("move-shape", {
-                        index,
-                        shape: {
-                          ...shapes[index],
-                          x: e.target.x(),
-                          y: e.target.y(),
-                        },
-                        senderId: socketId.current,
-                      });
-                    }
+                  onDblClick={() => {
+                    setEditingShapeIndex(index);
+                    setEditingText(shape.text || "");
                   }}
-                />
+                >
+                  <Ellipse
+                    key={index}
+                    x={shape.x}
+                    y={shape.y}
+                    radiusX={shape.radiusX}
+                    radiusY={shape.radiusY}
+                    stroke={shape.color}
+                    strokeWidth={shape.strokeWidth}
+                    onClick={() => setSelectedShapeIndex(index)}
+                    shadowBlur={selectedShapeIndex === index ? 10 : 0}
+                    shadowColor={selectedShapeIndex === index ? "blue" : ""}
+                    shadowOpacity={0.5}
+                    draggable
+                    onDragMove={(e) => handleDragMoveOrEnd(e, index)}
+                    onDragEnd={(e) => {
+                      handleDragMoveOrEnd(e, index);
+
+                      if (socket.current) {
+                        socket.current.emit("move-shape", {
+                          index,
+                          shape: {
+                            ...shapes[index],
+                            x: e.target.x(),
+                            y: e.target.y(),
+                          },
+                          senderId: socketId.current,
+                        });
+                      }
+                    }}
+                  />
+                  {shape.text && (
+                    <Text
+                      text={shape.text}
+                      x={shape.x - shape.radiusX + 5}
+                      y={shape.y - shape.radiusY + 5}
+                      fontSize={16}
+                      fill="black"
+                    />
+                  )}
+                </Group>
               );
             }
 
@@ -350,6 +421,53 @@ const Canvas = () => {
           })}
         </Layer>
       </Stage>
+      {editingShapeIndex !== null && (
+        <input
+          autoFocus
+          value={editingText}
+          onChange={(e) => setEditingText(e.target.value)}
+          onBlur={() => {
+            if (editingShapeIndex === null) return;
+
+            setShapes((prev) => {
+              const updated = [...prev];
+              const shape = updated[editingShapeIndex];
+              if (!shape) return prev;
+
+              const newShape = { ...shape, text: editingText };
+              updated[editingShapeIndex] = newShape;
+
+              // Emit update to server
+              if (socket.current) {
+                socket.current.emit("update-text", {
+                  index: editingShapeIndex,
+                  shape: newShape,
+                  senderId: socketId.current,
+                });
+              }
+
+              return updated;
+            });
+
+            setEditingShapeIndex(null);
+            setEditingText("");
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.currentTarget.blur();
+            }
+          }}
+          style={{
+            position: "absolute",
+            top: inputTop,
+            left: inputLeft,
+            fontSize: 16,
+            padding: "2px 4px",
+            border: "1px solid #ccc",
+            borderRadius: 4,
+          }}
+        />
+      )}
     </>
   );
 };

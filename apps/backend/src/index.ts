@@ -31,6 +31,11 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("move-shape", data);
 });
 
+socket.on("update-text", (data) => {
+  socket.broadcast.emit("update-text", data);
+});
+
+
 });
 
 server.listen(4000, () => {
