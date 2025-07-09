@@ -1,4 +1,4 @@
-import { Stage, Layer, Line, Rect } from "react-konva";
+import { Stage, Layer, Line, Rect, Ellipse } from "react-konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { useState, useRef, useEffect } from "react";
 import io, { Socket } from "socket.io-client";
@@ -14,6 +14,13 @@ type Shape =
       y: number;
       width: number;
       height: number;
+    }
+  | {
+      type: "ellipse";
+      x: number;
+      y: number;
+      radiusX: number;
+      radiusY: number;
     };
 
 const Canvas = () => {
@@ -73,6 +80,15 @@ const Canvas = () => {
         height: 0,
       };
       setShapes((prev) => [...prev, newRect]);
+    } else if (selectedTool === "ellipse") {
+      const newEllipse: Shape = {
+        type: "ellipse",
+        x: pos.x,
+        y: pos.y,
+        radiusX: 0,
+        radiusY: 0,
+      };
+      setShapes((prev) => [...prev, newEllipse]);
     }
   };
 
@@ -95,8 +111,6 @@ const Canvas = () => {
       };
       const updatedShapes = [...shapes.slice(0, -1), updatedLine];
       setShapes(updatedShapes);
-
-      // Optionally emit here for pen
     }
 
     if (lastShape.type === "rectangle" && selectedTool === "rectangle") {
@@ -109,8 +123,20 @@ const Canvas = () => {
       };
       const updatedShapes = [...shapes.slice(0, -1), updatedRect];
       setShapes(updatedShapes);
+    }
 
-      // Optionally emit here for rectangle
+    if (lastShape.type === "ellipse" && selectedTool === "ellipse") {
+      const newRadiusX = Math.abs(pos.x - lastShape.x);
+      const newRadiusY = Math.abs(pos.y - lastShape.y);
+
+      const updatedEllipse: Shape = {
+        ...lastShape,
+        radiusX: newRadiusX,
+        radiusY: newRadiusY,
+      };
+
+      const updatedShapes = [...shapes.slice(0, -1), updatedEllipse];
+      setShapes(updatedShapes);
     }
   };
 
@@ -179,6 +205,19 @@ const Canvas = () => {
                   y={shape.y}
                   width={shape.width}
                   height={shape.height}
+                  stroke="black"
+                  strokeWidth={2}
+                />
+              );
+            }
+            if (shape.type === "ellipse") {
+              return (
+                <Ellipse
+                  key={index}
+                  x={shape.x}
+                  y={shape.y}
+                  radiusX={shape.radiusX}
+                  radiusY={shape.radiusY}
                   stroke="black"
                   strokeWidth={2}
                 />
