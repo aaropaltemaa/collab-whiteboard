@@ -35,13 +35,12 @@ const Canvas = () => {
 
     socket.current.on("drawing", (data) => {
       if (data.senderId === socketId.current) {
-        // Ignore our own drawing
         return;
       }
 
-      // Append the incoming line to state
-      /*       setLines((prevLines) => [...prevLines, { points: data.points }]);
-       */
+      const incomingShape: Shape = data.shape;
+
+      setShapes((prevShapes) => [...prevShapes, incomingShape]);
     });
 
     return () => {
@@ -117,6 +116,16 @@ const Canvas = () => {
 
   const handleMouseUp = () => {
     isDrawing.current = false;
+
+    const lastShape = shapes[shapes.length - 1];
+    if (!lastShape) return;
+
+    if (socket.current) {
+      socket.current.emit("drawing", {
+        shape: lastShape,
+        senderId: socketId.current,
+      });
+    }
   };
 
   return (
