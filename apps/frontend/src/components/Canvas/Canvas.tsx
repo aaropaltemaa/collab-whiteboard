@@ -7,6 +7,8 @@ type Shape =
   | {
       type: "line";
       points: number[];
+      color: string;
+      strokeWidth: number;
     }
   | {
       type: "rectangle";
@@ -14,6 +16,8 @@ type Shape =
       y: number;
       width: number;
       height: number;
+      color: string;
+      strokeWidth: number;
     }
   | {
       type: "ellipse";
@@ -21,6 +25,8 @@ type Shape =
       y: number;
       radiusX: number;
       radiusY: number;
+      color: string;
+      strokeWidth: number;
     };
 
 const Canvas = () => {
@@ -28,6 +34,9 @@ const Canvas = () => {
   const [selectedTool, setSelectedTool] = useState<
     "pen" | "rectangle" | "ellipse"
   >("pen");
+  const [selectedColor, setSelectedColor] = useState<string>("#000000");
+  const [selectedStrokeWidth, setSelectedStrokeWidth] = useState<number>(2);
+
   const isDrawing = useRef(false);
   const socket = useRef<Socket | null>(null);
   const socketId = useRef<string | null>(null);
@@ -69,6 +78,8 @@ const Canvas = () => {
       const newLine: Shape = {
         type: "line",
         points: [pos.x, pos.y],
+        color: selectedColor,
+        strokeWidth: selectedStrokeWidth,
       };
       setShapes((prev) => [...prev, newLine]);
     } else if (selectedTool === "rectangle") {
@@ -78,6 +89,8 @@ const Canvas = () => {
         y: pos.y,
         width: 0,
         height: 0,
+        color: selectedColor,
+        strokeWidth: selectedStrokeWidth,
       };
       setShapes((prev) => [...prev, newRect]);
     } else if (selectedTool === "ellipse") {
@@ -87,6 +100,8 @@ const Canvas = () => {
         y: pos.y,
         radiusX: 0,
         radiusY: 0,
+        color: selectedColor,
+        strokeWidth: selectedStrokeWidth,
       };
       setShapes((prev) => [...prev, newEllipse]);
     }
@@ -156,7 +171,7 @@ const Canvas = () => {
 
   return (
     <>
-      <div className="flex gap-2 p-2 bg-gray-100 border-b border-gray-300">
+      <div className="flex gap-2 p-2 bg-gray-100 border-b border-gray-300 items-center">
         {["pen", "rectangle", "ellipse"].map((tool) => (
           <button
             key={tool}
@@ -172,6 +187,25 @@ const Canvas = () => {
             {tool.charAt(0).toUpperCase() + tool.slice(1)}
           </button>
         ))}
+
+        <input
+          type="color"
+          value={selectedColor}
+          onChange={(e) => setSelectedColor(e.target.value)}
+          className="ml-4"
+        />
+
+        <select
+          value={selectedStrokeWidth}
+          onChange={(e) => setSelectedStrokeWidth(Number(e.target.value))}
+          className="border border-gray-300 rounded px-2 py-1"
+        >
+          {[1, 2, 3, 4, 5, 8, 10].map((size) => (
+            <option key={size} value={size}>
+              {size}px
+            </option>
+          ))}
+        </select>
       </div>
 
       <Stage
@@ -189,8 +223,8 @@ const Canvas = () => {
                 <Line
                   key={index}
                   points={shape.points}
-                  stroke="black"
-                  strokeWidth={2}
+                  stroke={shape.color}
+                  strokeWidth={shape.strokeWidth}
                   lineCap="round"
                   lineJoin="round"
                 />
@@ -205,8 +239,8 @@ const Canvas = () => {
                   y={shape.y}
                   width={shape.width}
                   height={shape.height}
-                  stroke="black"
-                  strokeWidth={2}
+                  stroke={shape.color}
+                  strokeWidth={shape.strokeWidth}
                 />
               );
             }
@@ -218,8 +252,8 @@ const Canvas = () => {
                   y={shape.y}
                   radiusX={shape.radiusX}
                   radiusY={shape.radiusY}
-                  stroke="black"
-                  strokeWidth={2}
+                  stroke={shape.color}
+                  strokeWidth={shape.strokeWidth}
                 />
               );
             }
