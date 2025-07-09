@@ -1,14 +1,23 @@
-import { Stage, Layer, Line } from "react-konva";
+import { Stage, Layer, Line, Rect } from "react-konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { useState, useRef, useEffect } from "react";
 import io, { Socket } from "socket.io-client";
 
-type Line = {
-  points: number[];
-};
+type Shape =
+  | {
+      type: "line";
+      points: number[];
+    }
+  | {
+      type: "rectangle";
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    };
 
 const Canvas = () => {
-  const [lines, setLines] = useState<Line[]>([]);
+  const [shapes, setShapes] = useState<Shape[]>([]);
   const [selectedTool, setSelectedTool] = useState<
     "pen" | "rectangle" | "ellipse"
   >("pen");
@@ -31,7 +40,8 @@ const Canvas = () => {
       }
 
       // Append the incoming line to state
-      setLines((prevLines) => [...prevLines, { points: data.points }]);
+      /*       setLines((prevLines) => [...prevLines, { points: data.points }]);
+       */
     });
 
     return () => {
@@ -42,42 +52,66 @@ const Canvas = () => {
   }, []);
 
   const handleMouseDown = (e: KonvaEventObject<MouseEvent>) => {
-    isDrawing.current = true;
     const stage = e.target.getStage();
     if (!stage) return;
     const pos = stage.getPointerPosition();
     if (!pos) return;
-    const newLine: Line = { points: [pos.x, pos.y] };
-    setLines([...lines, newLine]);
+
+    isDrawing.current = true;
+
+    if (selectedTool === "pen") {
+      const newLine: Shape = {
+        type: "line",
+        points: [pos.x, pos.y],
+      };
+      setShapes((prev) => [...prev, newLine]);
+    } else if (selectedTool === "rectangle") {
+      const newRect: Shape = {
+        type: "rectangle",
+        x: pos.x,
+        y: pos.y,
+        width: 0,
+        height: 0,
+      };
+      setShapes((prev) => [...prev, newRect]);
+    }
   };
 
   const handleMouseMove = (e: KonvaEventObject<MouseEvent>) => {
-    // if we're not drawing, exit
     if (!isDrawing.current) return;
 
     const stage = e.target.getStage();
     if (!stage) return;
-    const point = stage.getPointerPosition();
-    if (!point) return;
+    const pos = stage.getPointerPosition();
+    if (!pos) return;
 
-    // Get the last line
-    const lastLine = lines[lines.length - 1];
+    const lastShape = shapes[shapes.length - 1];
 
-    // Add new point to its points array
-    const updatedLine = {
-      ...lastLine,
-      points: [...lastLine.points, point.x, point.y],
-    };
+    if (!lastShape) return;
 
-    // Replace the last line with the updated one
-    const updatedLines = [...lines.slice(0, -1), updatedLine];
+    if (lastShape.type === "line" && selectedTool === "pen") {
+      const updatedLine: Shape = {
+        ...lastShape,
+        points: [...lastShape.points, pos.x, pos.y],
+      };
+      const updatedShapes = [...shapes.slice(0, -1), updatedLine];
+      setShapes(updatedShapes);
 
-    setLines(updatedLines);
-    if (socket.current) {
-      socket.current.emit("drawing", {
-        points: updatedLine.points,
-        senderId: socketId.current,
-      });
+      // Optionally emit here for pen
+    }
+
+    if (lastShape.type === "rectangle" && selectedTool === "rectangle") {
+      const newWidth = pos.x - lastShape.x;
+      const newHeight = pos.y - lastShape.y;
+      const updatedRect: Shape = {
+        ...lastShape,
+        width: newWidth,
+        height: newHeight,
+      };
+      const updatedShapes = [...shapes.slice(0, -1), updatedRect];
+      setShapes(updatedShapes);
+
+      // Optionally emit here for rectangle
     }
   };
 
@@ -114,16 +148,36 @@ const Canvas = () => {
         style={{ background: "#fff" }}
       >
         <Layer>
-          {lines.map((line, index) => (
-            <Line
-              key={index}
-              points={line.points}
-              stroke="black"
-              strokeWidth={2}
-              lineCap="round"
-              lineJoin="round"
-            />
-          ))}
+          {shapes.map((shape, index) => {
+            if (shape.type === "line") {
+              return (
+                <Line
+                  key={index}
+                  points={shape.points}
+                  stroke="black"
+                  strokeWidth={2}
+                  lineCap="round"
+                  lineJoin="round"
+                />
+              );
+            }
+
+            if (shape.type === "rectangle") {
+              return (
+                <Rect
+                  key={index}
+                  x={shape.x}
+                  y={shape.y}
+                  width={shape.width}
+                  height={shape.height}
+                  stroke="black"
+                  strokeWidth={2}
+                />
+              );
+            }
+
+            return null;
+          })}
         </Layer>
       </Stage>
     </>
