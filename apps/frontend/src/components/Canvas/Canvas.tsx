@@ -1,36 +1,11 @@
 import { Stage, Layer, Line, Rect, Ellipse, Text, Group } from "react-konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { useState, useRef, useEffect } from "react";
+import Toolbar from "./Toolbar";
 import io, { Socket } from "socket.io-client";
-
-type Shape =
-  | {
-      type: "line";
-      points: number[];
-      color: string;
-      strokeWidth: number;
-      text?: string;
-    }
-  | {
-      type: "rectangle";
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-      color: string;
-      strokeWidth: number;
-      text?: string;
-    }
-  | {
-      type: "ellipse";
-      x: number;
-      y: number;
-      radiusX: number;
-      radiusY: number;
-      color: string;
-      strokeWidth: number;
-      text?: string;
-    };
+import type { Shape } from "../../types";
+import TextEditorOverlay from "./TextEditorOverlay";
+import { nanoid } from "nanoid";
 
 const Canvas = () => {
   const [shapes, setShapes] = useState<Shape[]>([]);
@@ -59,34 +34,33 @@ const Canvas = () => {
       console.log("Connected to server, socket ID:", socketId.current);
     });
 
+    socket.current.on("init", (serverShapes) => {
+      setShapes(serverShapes);
+    });
+
     socket.current.on("drawing", (data) => {
-      if (data.senderId === socketId.current) {
-        return;
-      }
-
-      const incomingShape: Shape = data.shape;
-
-      setShapes((prevShapes) => [...prevShapes, incomingShape]);
+      if (data.senderId === socketId.current) return;
+      setShapes((prev) => {
+        // Check if shape already exists
+        const exists = prev.some((s) => s.id === data.shape.id);
+        if (exists) {
+          // If so, replace it
+          return prev.map((s) => (s.id === data.shape.id ? data.shape : s));
+        } else {
+          // Otherwise, add it
+          return [...prev, data.shape];
+        }
+      });
     });
 
     socket.current.on("move-shape", (data) => {
       if (data.senderId === socketId.current) return;
-
-      setShapes((prev) => {
-        const updated = [...prev];
-        updated[data.index] = data.shape;
-        return updated;
-      });
+      setShapes((prev) => prev.map((s) => (s.id === data.id ? data.shape : s)));
     });
 
     socket.current.on("update-text", (data) => {
       if (data.senderId === socketId.current) return;
-
-      setShapes((prev) => {
-        const updated = [...prev];
-        updated[data.index] = data.shape;
-        return updated;
-      });
+      setShapes((prev) => prev.map((s) => (s.id === data.id ? data.shape : s)));
     });
 
     return () => {
@@ -112,6 +86,7 @@ const Canvas = () => {
 
     if (selectedTool === "pen") {
       const newLine: Shape = {
+        id: nanoid(),
         type: "line",
         points: [pos.x, pos.y],
         color: selectedColor,
@@ -120,6 +95,7 @@ const Canvas = () => {
       setShapes((prev) => [...prev, newLine]);
     } else if (selectedTool === "rectangle") {
       const newRect: Shape = {
+        id: nanoid(),
         type: "rectangle",
         x: pos.x,
         y: pos.y,
@@ -128,9 +104,11 @@ const Canvas = () => {
         color: selectedColor,
         strokeWidth: selectedStrokeWidth,
       };
+
       setShapes((prev) => [...prev, newRect]);
     } else if (selectedTool === "ellipse") {
       const newEllipse: Shape = {
+        id: nanoid(),
         type: "ellipse",
         x: pos.x,
         y: pos.y,
@@ -235,58 +213,16 @@ const Canvas = () => {
   const shapeBeingEdited =
     editingShapeIndex !== null ? shapes[editingShapeIndex] : null;
 
-  const inputTop =
-    shapeBeingEdited && shapeBeingEdited.type === "rectangle"
-      ? shapeBeingEdited.y
-      : shapeBeingEdited && shapeBeingEdited.type === "ellipse"
-        ? shapeBeingEdited.y - shapeBeingEdited.radiusY
-        : 0;
-
-  const inputLeft =
-    shapeBeingEdited && shapeBeingEdited.type === "rectangle"
-      ? shapeBeingEdited.x
-      : shapeBeingEdited && shapeBeingEdited.type === "ellipse"
-        ? shapeBeingEdited.x - shapeBeingEdited.radiusX
-        : 0;
-
   return (
     <>
-      <div className="flex gap-2 p-2 bg-gray-100 border-b border-gray-300 items-center">
-        {["pen", "rectangle", "ellipse"].map((tool) => (
-          <button
-            key={tool}
-            onClick={() =>
-              setSelectedTool(tool as "pen" | "rectangle" | "ellipse")
-            }
-            className={`px-3 py-1 rounded ${
-              selectedTool === tool
-                ? "bg-blue-500 text-white"
-                : "bg-white text-gray-800 border border-gray-300 hover:bg-gray-200"
-            }`}
-          >
-            {tool.charAt(0).toUpperCase() + tool.slice(1)}
-          </button>
-        ))}
-
-        <input
-          type="color"
-          value={selectedColor}
-          onChange={(e) => setSelectedColor(e.target.value)}
-          className="ml-4"
-        />
-
-        <select
-          value={selectedStrokeWidth}
-          onChange={(e) => setSelectedStrokeWidth(Number(e.target.value))}
-          className="border border-gray-300 rounded px-2 py-1"
-        >
-          {[1, 2, 3, 4, 5, 8, 10].map((size) => (
-            <option key={size} value={size}>
-              {size}px
-            </option>
-          ))}
-        </select>
-      </div>
+      <Toolbar
+        selectedTool={selectedTool}
+        setSelectedTool={setSelectedTool}
+        selectedColor={selectedColor}
+        setSelectedColor={setSelectedColor}
+        selectedStrokeWidth={selectedStrokeWidth}
+        setSelectedStrokeWidth={setSelectedStrokeWidth}
+      />
 
       <Stage
         onMouseDown={handleMouseDown}
@@ -301,7 +237,7 @@ const Canvas = () => {
             if (shape.type === "line") {
               return (
                 <Line
-                  key={index}
+                  key={shape.id}
                   points={shape.points}
                   stroke={shape.color}
                   strokeWidth={shape.strokeWidth}
@@ -314,7 +250,7 @@ const Canvas = () => {
             if (shape.type === "rectangle") {
               return (
                 <Group
-                  key={index}
+                  key={shape.id}
                   onClick={() => setSelectedShapeIndex(index)}
                   onDblClick={() => {
                     setEditingShapeIndex(index);
@@ -322,7 +258,6 @@ const Canvas = () => {
                   }}
                 >
                   <Rect
-                    key={index}
                     x={shape.x}
                     y={shape.y}
                     width={shape.width}
@@ -340,7 +275,7 @@ const Canvas = () => {
 
                       if (socket.current) {
                         socket.current.emit("move-shape", {
-                          index,
+                          id: shapes[index].id,
                           shape: {
                             ...shapes[index],
                             x: e.target.x(),
@@ -367,7 +302,7 @@ const Canvas = () => {
             if (shape.type === "ellipse") {
               return (
                 <Group
-                  key={index}
+                  key={shape.id}
                   onClick={() => setSelectedShapeIndex(index)}
                   onDblClick={() => {
                     setEditingShapeIndex(index);
@@ -375,7 +310,6 @@ const Canvas = () => {
                   }}
                 >
                   <Ellipse
-                    key={index}
                     x={shape.x}
                     y={shape.y}
                     radiusX={shape.radiusX}
@@ -393,12 +327,14 @@ const Canvas = () => {
 
                       if (socket.current) {
                         socket.current.emit("move-shape", {
-                          index,
+                          id: shapes[index].id,
                           shape: {
                             ...shapes[index],
+                            id: shapes[index].id,
                             x: e.target.x(),
                             y: e.target.y(),
                           },
+
                           senderId: socketId.current,
                         });
                       }
@@ -421,51 +357,16 @@ const Canvas = () => {
           })}
         </Layer>
       </Stage>
-      {editingShapeIndex !== null && (
-        <input
-          autoFocus
-          value={editingText}
-          onChange={(e) => setEditingText(e.target.value)}
-          onBlur={() => {
-            if (editingShapeIndex === null) return;
-
-            setShapes((prev) => {
-              const updated = [...prev];
-              const shape = updated[editingShapeIndex];
-              if (!shape) return prev;
-
-              const newShape = { ...shape, text: editingText };
-              updated[editingShapeIndex] = newShape;
-
-              // Emit update to server
-              if (socket.current) {
-                socket.current.emit("update-text", {
-                  index: editingShapeIndex,
-                  shape: newShape,
-                  senderId: socketId.current,
-                });
-              }
-
-              return updated;
-            });
-
-            setEditingShapeIndex(null);
-            setEditingText("");
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.currentTarget.blur();
-            }
-          }}
-          style={{
-            position: "absolute",
-            top: inputTop,
-            left: inputLeft,
-            fontSize: 16,
-            padding: "2px 4px",
-            border: "1px solid #ccc",
-            borderRadius: 4,
-          }}
+      {editingShapeIndex !== null && shapeBeingEdited && (
+        <TextEditorOverlay
+          editingShapeIndex={editingShapeIndex}
+          shape={shapeBeingEdited}
+          editingText={editingText}
+          setEditingText={setEditingText}
+          setEditingShapeIndex={setEditingShapeIndex}
+          setShapes={setShapes}
+          socket={socket.current}
+          socketId={socketId.current}
         />
       )}
     </>

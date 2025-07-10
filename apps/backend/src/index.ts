@@ -16,27 +16,30 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
+let shapes: any[] = [];
+
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-    socket.on("drawing", (data) => {
-    // Broadcast to all other clients
+  // Send the current state
+  socket.emit("init", shapes);
+
+  socket.on("drawing", (data) => {
+    shapes.push(data.shape);
     socket.broadcast.emit("drawing", data);
   });
 
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-  });
   socket.on("move-shape", (data) => {
+    shapes[data.index] = data.shape;
     socket.broadcast.emit("move-shape", data);
+  });
+
+  socket.on("update-text", (data) => {
+    shapes[data.index] = data.shape;
+    socket.broadcast.emit("update-text", data);
+  });
 });
 
-socket.on("update-text", (data) => {
-  socket.broadcast.emit("update-text", data);
-});
-
-
-});
 
 server.listen(4000, () => {
   console.log("Backend listening on http://localhost:4000");
