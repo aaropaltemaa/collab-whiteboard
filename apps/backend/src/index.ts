@@ -25,6 +25,8 @@ io.on("connection", (socket) => {
   socket.emit("init", shapes);
 
   socket.on("drawing", (data) => {
+    // Remove any existing shape with the same id
+    shapes = shapes.filter((s) => s.id !== data.shape.id);
     shapes.push(data.shape);
     socket.broadcast.emit("drawing", data);
   });
@@ -35,7 +37,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("update-text", (data) => {
-    shapes[data.index] = data.shape;
+    const index = shapes.findIndex((s) => s.id === data.id);
+    if (index !== -1) {
+      shapes[index] = data.shape;
+    }
     socket.broadcast.emit("update-text", data);
   });
 });

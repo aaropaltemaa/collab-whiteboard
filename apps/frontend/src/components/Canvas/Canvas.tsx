@@ -1,11 +1,12 @@
-import { Stage, Layer, Line, Rect, Ellipse, Text, Group } from "react-konva";
-import type { KonvaEventObject } from "konva/lib/Node";
-import { useState, useRef, useEffect } from "react";
+import { Stage, Layer } from "react-konva";
+import { useState, useRef } from "react";
 import Toolbar from "./Toolbar";
-import io, { Socket } from "socket.io-client";
-import type { Shape } from "../../types";
+import ShapeRenderer from "./ShapeRenderer";
 import TextEditorOverlay from "./TextEditorOverlay";
 import { nanoid } from "nanoid";
+import type { Shape } from "../../types";
+import { useShapesSocket } from "../../hooks/useShapesSocket";
+import type { KonvaEventObject } from "konva/lib/Node";
 
 const Canvas = () => {
   const [shapes, setShapes] = useState<Shape[]>([]);
@@ -23,52 +24,7 @@ const Canvas = () => {
   const [selectedStrokeWidth, setSelectedStrokeWidth] = useState<number>(2);
 
   const isDrawing = useRef(false);
-  const socket = useRef<Socket | null>(null);
-  const socketId = useRef<string | null>(null);
-
-  useEffect(() => {
-    socket.current = io("http://localhost:4000");
-
-    socket.current.on("connect", () => {
-      socketId.current = socket.current?.id ?? null;
-      console.log("Connected to server, socket ID:", socketId.current);
-    });
-
-    socket.current.on("init", (serverShapes) => {
-      setShapes(serverShapes);
-    });
-
-    socket.current.on("drawing", (data) => {
-      if (data.senderId === socketId.current) return;
-      setShapes((prev) => {
-        // Check if shape already exists
-        const exists = prev.some((s) => s.id === data.shape.id);
-        if (exists) {
-          // If so, replace it
-          return prev.map((s) => (s.id === data.shape.id ? data.shape : s));
-        } else {
-          // Otherwise, add it
-          return [...prev, data.shape];
-        }
-      });
-    });
-
-    socket.current.on("move-shape", (data) => {
-      if (data.senderId === socketId.current) return;
-      setShapes((prev) => prev.map((s) => (s.id === data.id ? data.shape : s)));
-    });
-
-    socket.current.on("update-text", (data) => {
-      if (data.senderId === socketId.current) return;
-      setShapes((prev) => prev.map((s) => (s.id === data.id ? data.shape : s)));
-    });
-
-    return () => {
-      if (socket.current) {
-        socket.current.disconnect();
-      }
-    };
-  }, []);
+  const { socket, socketId } = useShapesSocket(setShapes);
 
   const handleMouseDown = (e: KonvaEventObject<MouseEvent>) => {
     // Skip if clicking an existing shape
@@ -183,33 +139,6 @@ const Canvas = () => {
     }
   };
 
-  const handleDragMoveOrEnd = (
-    e: KonvaEventObject<DragEvent>,
-    index: number
-  ) => {
-    const pos = e.target.position();
-    const shape = shapes[index];
-
-    if (!shape) return;
-
-    let updatedShape: Shape;
-
-    if (shape.type === "rectangle") {
-      updatedShape = { ...shape, x: pos.x, y: pos.y };
-    } else if (shape.type === "ellipse") {
-      updatedShape = { ...shape, x: pos.x, y: pos.y };
-    } else {
-      // Lines are not draggable
-      return;
-    }
-
-    const updatedShapes = [...shapes];
-    updatedShapes[index] = updatedShape;
-    setShapes(updatedShapes);
-
-    // Optionally emit on drag end
-  };
-
   const shapeBeingEdited =
     editingShapeIndex !== null ? shapes[editingShapeIndex] : null;
 
@@ -233,134 +162,44 @@ const Canvas = () => {
         style={{ background: "#fff" }}
       >
         <Layer>
-          {shapes.map((shape, index) => {
-            if (shape.type === "line") {
-              return (
-                <Line
-                  key={shape.id}
-                  points={shape.points}
-                  stroke={shape.color}
-                  strokeWidth={shape.strokeWidth}
-                  lineCap="round"
-                  lineJoin="round"
-                />
-              );
-            }
+          {shapes.map((shape) => (
+            <ShapeRenderer
+              key={shape.id}
+              shape={shape}
+              isSelected={
+                selectedShapeIndex !== null &&
+                shapes[selectedShapeIndex]?.id === shape.id
+              }
+              onSelect={() =>
+                setSelectedShapeIndex(
+                  shapes.findIndex((s) => s.id === shape.id)
+                )
+              }
+              onDoubleClick={() => {
+                setEditingShapeIndex(
+                  shapes.findIndex((s) => s.id === shape.id)
+                );
+                setEditingText(shape.text || "");
+              }}
+              onDragEnd={(updated: Shape) => {
+                setShapes((prev) =>
+                  prev.map((s) => (s.id === updated.id ? updated : s))
+                );
 
-            if (shape.type === "rectangle") {
-              return (
-                <Group
-                  key={shape.id}
-                  onClick={() => setSelectedShapeIndex(index)}
-                  onDblClick={() => {
-                    setEditingShapeIndex(index);
-                    setEditingText(shape.text || "");
-                  }}
-                >
-                  <Rect
-                    x={shape.x}
-                    y={shape.y}
-                    width={shape.width}
-                    height={shape.height}
-                    stroke={shape.color}
-                    strokeWidth={shape.strokeWidth}
-                    onClick={() => setSelectedShapeIndex(index)}
-                    shadowBlur={selectedShapeIndex === index ? 10 : 0}
-                    shadowColor={selectedShapeIndex === index ? "blue" : ""}
-                    shadowOpacity={0.5}
-                    draggable
-                    onDragMove={(e) => handleDragMoveOrEnd(e, index)}
-                    onDragEnd={(e) => {
-                      handleDragMoveOrEnd(e, index);
-
-                      if (socket.current) {
-                        socket.current.emit("move-shape", {
-                          id: shapes[index].id,
-                          shape: {
-                            ...shapes[index],
-                            x: e.target.x(),
-                            y: e.target.y(),
-                          },
-                          senderId: socketId.current,
-                        });
-                      }
-                    }}
-                  />
-                  {shape.text && (
-                    <Text
-                      text={shape.text}
-                      x={shape.x + 5}
-                      y={shape.y + 5}
-                      fontSize={16}
-                      fill="black"
-                    />
-                  )}
-                </Group>
-              );
-            }
-
-            if (shape.type === "ellipse") {
-              return (
-                <Group
-                  key={shape.id}
-                  onClick={() => setSelectedShapeIndex(index)}
-                  onDblClick={() => {
-                    setEditingShapeIndex(index);
-                    setEditingText(shape.text || "");
-                  }}
-                >
-                  <Ellipse
-                    x={shape.x}
-                    y={shape.y}
-                    radiusX={shape.radiusX}
-                    radiusY={shape.radiusY}
-                    stroke={shape.color}
-                    strokeWidth={shape.strokeWidth}
-                    onClick={() => setSelectedShapeIndex(index)}
-                    shadowBlur={selectedShapeIndex === index ? 10 : 0}
-                    shadowColor={selectedShapeIndex === index ? "blue" : ""}
-                    shadowOpacity={0.5}
-                    draggable
-                    onDragMove={(e) => handleDragMoveOrEnd(e, index)}
-                    onDragEnd={(e) => {
-                      handleDragMoveOrEnd(e, index);
-
-                      if (socket.current) {
-                        socket.current.emit("move-shape", {
-                          id: shapes[index].id,
-                          shape: {
-                            ...shapes[index],
-                            id: shapes[index].id,
-                            x: e.target.x(),
-                            y: e.target.y(),
-                          },
-
-                          senderId: socketId.current,
-                        });
-                      }
-                    }}
-                  />
-                  {shape.text && (
-                    <Text
-                      text={shape.text}
-                      x={shape.x - shape.radiusX + 5}
-                      y={shape.y - shape.radiusY + 5}
-                      fontSize={16}
-                      fill="black"
-                    />
-                  )}
-                </Group>
-              );
-            }
-
-            return null;
-          })}
+                socket.current?.emit("move-shape", {
+                  id: updated.id,
+                  shape: updated,
+                  senderId: socketId.current,
+                });
+              }}
+            />
+          ))}
         </Layer>
       </Stage>
-      {editingShapeIndex !== null && shapeBeingEdited && (
+      {editingShapeIndex !== null && shapeBeingEdited !== null && (
         <TextEditorOverlay
-          editingShapeIndex={editingShapeIndex}
-          shape={shapeBeingEdited}
+          editingShapeIndex={editingShapeIndex as number}
+          shape={shapeBeingEdited as Shape}
           editingText={editingText}
           setEditingText={setEditingText}
           setEditingShapeIndex={setEditingShapeIndex}
