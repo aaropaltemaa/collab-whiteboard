@@ -1,4 +1,4 @@
-import { Stage, Layer, Rect, Line } from "react-konva";
+import { Stage, Layer, Rect, Line, Ellipse } from "react-konva";
 import { useState, useRef } from "react";
 import { nanoid } from "nanoid";
 import Konva from "konva";
@@ -7,9 +7,9 @@ import NavBar from "../NavBar";
 
 const Canvas = () => {
   const [shapes, setShapes] = useState<Shape[]>([]);
-  const [selectedTool, setSelectedTool] = useState<"rectangle" | "pen">(
-    "rectangle"
-  );
+  const [selectedTool, setSelectedTool] = useState<
+    "rectangle" | "pen" | "ellipse"
+  >("rectangle");
   const [selectedColor, setSelectedColor] = useState<string>("#000000");
   const [selectedStrokeWidth, setSelectedStrokeWidth] = useState<number>(2);
   const isDrawing = useRef(false);
@@ -45,6 +45,21 @@ const Canvas = () => {
       setShapes((prev) => [...prev, newLine]);
       isDrawing.current = true;
     }
+
+    if (selectedTool === "ellipse") {
+      const newEllipse = {
+        id: nanoid(),
+        type: "ellipse" as const,
+        x: pointerPosition.x,
+        y: pointerPosition.y,
+        radiusX: 0,
+        radiusY: 0,
+        color: selectedColor,
+        strokeWidth: selectedStrokeWidth,
+      };
+      setShapes((prev) => [...prev, newEllipse]);
+      isDrawing.current = true;
+    }
   };
 
   const handleMouseMove = (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -64,6 +79,22 @@ const Canvas = () => {
         };
 
         setShapes((prev) => [...prev.slice(0, -1), updatedLine]);
+      }
+    }
+
+    if (isDrawing.current && selectedTool === "ellipse") {
+      const lastShape = shapes[shapes.length - 1];
+
+      if (lastShape && lastShape.type === "ellipse") {
+        const newRadiusX = Math.abs(pointerPosition.x - lastShape.x);
+        const newRadiusY = Math.abs(pointerPosition.y - lastShape.y);
+
+        const updatedEllipse = {
+          ...lastShape,
+          radiusX: newRadiusX,
+          radiusY: newRadiusY,
+        };
+        setShapes([...shapes.slice(0, -1), updatedEllipse]);
       }
     }
   };
@@ -120,6 +151,19 @@ const Canvas = () => {
                   strokeWidth={shape.strokeWidth}
                 />
               );
+            if (shape.type === "ellipse") {
+              return (
+                <Ellipse
+                  key={shape.id}
+                  x={shape.x}
+                  y={shape.y}
+                  radiusX={shape.radiusX}
+                  radiusY={shape.radiusY}
+                  stroke={shape.color}
+                  strokeWidth={shape.strokeWidth}
+                />
+              );
+            }
 
             return null; // Add return null for other shape types
           })}

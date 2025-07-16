@@ -11,6 +11,7 @@ const NavBar = ({
     <div className="flex flex-row items-center h-full gap-4 ml-2">
       <button onClick={() => setSelectedTool("rectangle")}>Rectangle</button>
       <button onClick={() => setSelectedTool("pen")}>Pen</button>
+      <button onClick={() => setSelectedTool("ellipse")}>Ellipse</button>
       <input
         type="color"
         value={selectedColor}
