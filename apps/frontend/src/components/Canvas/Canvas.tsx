@@ -10,6 +10,7 @@ const Canvas = () => {
   const [selectedTool, setSelectedTool] = useState<"rectangle" | "pen">(
     "rectangle"
   );
+  const [selectedColor, setSelectedColor] = useState<string>("#000000");
   const isDrawing = useRef(false);
 
   const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -26,7 +27,7 @@ const Canvas = () => {
         type: "rectangle" as const,
         x: pointerPosition.x,
         y: pointerPosition.y,
-        color: "green",
+        color: selectedColor,
       };
       setShapes((prev) => [...prev, newRect]);
     }
@@ -36,7 +37,7 @@ const Canvas = () => {
         id: nanoid(),
         type: "line" as const,
         points: [pointerPosition.x, pointerPosition.y],
-        color: "black",
+        color: selectedColor,
       };
       setShapes((prev) => [...prev, newLine]);
       isDrawing.current = true;
@@ -70,7 +71,11 @@ const Canvas = () => {
 
   return (
     <>
-      <NavBar setSelectedTool={setSelectedTool} />
+      <NavBar
+        selectedColor={selectedColor}
+        setSelectedTool={setSelectedTool}
+        setSelectedColor={setSelectedColor}
+      />
       <Stage
         width={window.innerWidth}
         height={window.innerHeight}

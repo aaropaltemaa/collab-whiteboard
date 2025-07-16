@@ -15,4 +15,6 @@ export type Shape =
 
 export type NavBarProps = {
   setSelectedTool: React.Dispatch<React.SetStateAction<"rectangle" | "pen">>;
+  setSelectedColor: React.Dispatch<React.SetStateAction<string>>;
+  selectedColor: string;
 };
