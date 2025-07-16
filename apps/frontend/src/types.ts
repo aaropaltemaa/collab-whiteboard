@@ -12,3 +12,7 @@ export type Shape =
       points: number[];
       color: string;
     };
+
+export type NavBarProps = {
+  setSelectedTool: React.Dispatch<React.SetStateAction<"rectangle" | "pen">>;
+};

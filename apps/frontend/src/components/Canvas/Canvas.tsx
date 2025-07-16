@@ -3,19 +3,7 @@ import { useState, useRef } from "react";
 import { nanoid } from "nanoid";
 import Konva from "konva";
 import type { Shape } from "../../types";
-
-type NavBarProps = {
-  setSelectedTool: React.Dispatch<React.SetStateAction<"rectangle" | "pen">>;
-};
-
-const NavBar = ({ setSelectedTool }: NavBarProps) => (
-  <section className=" max-w-5xl justify-center h-20 bg-amber-100 mx-auto mt-4 rounded-2xl border-b-2">
-    <div className="flex flex-row items-center h-full gap-4 ml-2">
-      <button onClick={() => setSelectedTool("rectangle")}>Rectangle</button>
-      <button onClick={() => setSelectedTool("pen")}>Pen</button>
-    </div>
-  </section>
-);
+import NavBar from "../NavBar";
 
 const Canvas = () => {
   const [shapes, setShapes] = useState<Shape[]>([]);
@@ -40,7 +28,6 @@ const Canvas = () => {
         y: pointerPosition.y,
         color: "green",
       };
-
       setShapes((prev) => [...prev, newRect]);
     }
 
@@ -53,7 +40,6 @@ const Canvas = () => {
         points: [pointerPosition.x, pointerPosition.y],
         color: "black",
       };
-
       setShapes((prev) => [...prev, newLine]);
     }
   };
