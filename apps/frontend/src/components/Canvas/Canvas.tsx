@@ -11,6 +11,7 @@ const Canvas = () => {
     "rectangle"
   );
   const [selectedColor, setSelectedColor] = useState<string>("#000000");
+  const [selectedStrokeWidth, setSelectedStrokeWidth] = useState<number>(2);
   const isDrawing = useRef(false);
 
   const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -28,6 +29,7 @@ const Canvas = () => {
         x: pointerPosition.x,
         y: pointerPosition.y,
         color: selectedColor,
+        strokeWidth: selectedStrokeWidth,
       };
       setShapes((prev) => [...prev, newRect]);
     }
@@ -38,6 +40,7 @@ const Canvas = () => {
         type: "line" as const,
         points: [pointerPosition.x, pointerPosition.y],
         color: selectedColor,
+        strokeWidth: selectedStrokeWidth,
       };
       setShapes((prev) => [...prev, newLine]);
       isDrawing.current = true;
@@ -75,6 +78,8 @@ const Canvas = () => {
         selectedColor={selectedColor}
         setSelectedTool={setSelectedTool}
         setSelectedColor={setSelectedColor}
+        selectedStrokeWidth={selectedStrokeWidth}
+        setSelectedStrokeWidth={setSelectedStrokeWidth}
       />
       <Stage
         width={window.innerWidth}
@@ -94,6 +99,7 @@ const Canvas = () => {
                   width={200}
                   height={100}
                   fill={shape.color}
+                  strokeWidth={shape.strokeWidth}
                   draggable
                   onDragEnd={(e) => {
                     const pos = e.target.position();
@@ -111,7 +117,7 @@ const Canvas = () => {
                   key={shape.id}
                   points={shape.points}
                   stroke={shape.color}
-                  strokeWidth={2}
+                  strokeWidth={shape.strokeWidth}
                 />
               );
 
