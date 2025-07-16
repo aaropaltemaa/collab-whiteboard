@@ -16,9 +16,10 @@ const Canvas = () => {
 
   const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
     // Ignore clicks on existing shapes
-    if (e.target !== e.target.getStage()) return;
+    if (e.target !== e.target.getStage() && selectedTool !== "pen") return;
 
     const stage = e.target.getStage();
+    if (!stage) return;
     const pointerPosition = stage.getPointerPosition();
     if (!pointerPosition) return;
 
@@ -63,9 +64,8 @@ const Canvas = () => {
   };
 
   const handleMouseMove = (e: Konva.KonvaEventObject<MouseEvent>) => {
-    if (e.target !== e.target.getStage()) return;
-
     const stage = e.target.getStage();
+    if (!stage) return;
     const pointerPosition = stage.getPointerPosition();
     if (!pointerPosition) return;
 
@@ -161,6 +161,15 @@ const Canvas = () => {
                   radiusY={shape.radiusY}
                   stroke={shape.color}
                   strokeWidth={shape.strokeWidth}
+                  draggable
+                  onDragEnd={(e) => {
+                    const pos = e.target.position();
+                    setShapes((prev) =>
+                      prev.map((s) =>
+                        s.id === shape.id ? { ...s, x: pos.x, y: pos.y } : s
+                      )
+                    );
+                  }}
                 />
               );
             }
