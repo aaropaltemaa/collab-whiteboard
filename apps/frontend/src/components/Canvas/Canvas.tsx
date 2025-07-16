@@ -1,5 +1,5 @@
-import { Stage, Layer, Rect } from "react-konva";
-import { useState } from "react";
+import { Stage, Layer, Rect, Line } from "react-konva";
+import { useState, useRef } from "react";
 import { nanoid } from "nanoid";
 import Konva from "konva";
 
@@ -7,6 +7,9 @@ const Canvas = () => {
   const [shapes, setShapes] = useState([
     { id: nanoid(), x: 50, y: 50, color: "red" },
   ]);
+  const isDrawing = useRef(false);
+
+  console.log(isDrawing.current);
 
   const handleStageClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
     // Ignore clicks on existing shapes
