@@ -32,8 +32,6 @@ const Canvas = () => {
     }
 
     if (selectedTool === "pen") {
-      isDrawing.current = true;
-
       const newLine = {
         id: nanoid(),
         type: "line" as const,
@@ -41,7 +39,33 @@ const Canvas = () => {
         color: "black",
       };
       setShapes((prev) => [...prev, newLine]);
+      isDrawing.current = true;
     }
+  };
+
+  const handleMouseMove = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (e.target !== e.target.getStage()) return;
+
+    const stage = e.target.getStage();
+    const pointerPosition = stage.getPointerPosition();
+    if (!pointerPosition) return;
+
+    if (isDrawing.current && selectedTool === "pen") {
+      const lastShape = shapes[shapes.length - 1];
+
+      if (lastShape && lastShape.type === "line") {
+        const updatedLine = {
+          ...lastShape,
+          points: [...lastShape.points, pointerPosition.x, pointerPosition.y],
+        };
+
+        setShapes((prev) => [...prev.slice(0, -1), updatedLine]);
+      }
+    }
+  };
+
+  const handleMouseUp = () => {
+    isDrawing.current = false;
   };
 
   return (
@@ -51,6 +75,8 @@ const Canvas = () => {
         width={window.innerWidth}
         height={window.innerHeight}
         onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
       >
         <Layer>
           {shapes.map((shape) => {
