@@ -107,6 +107,7 @@ const Canvas = () => {
   return (
     <>
       <NavBar
+        selectedTool={selectedTool} // Add this line
         selectedColor={selectedColor}
         setSelectedTool={setSelectedTool}
         setSelectedColor={setSelectedColor}

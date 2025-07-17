@@ -27,6 +27,7 @@ export type Shape =
 
 
 export type NavBarProps = {
+  selectedTool: "rectangle" | "pen" | "ellipse"; // Add this line
   setSelectedTool: React.Dispatch<React.SetStateAction<"rectangle" | "pen" | "ellipse">>;
   setSelectedColor: React.Dispatch<React.SetStateAction<string>>;
   setSelectedStrokeWidth: React.Dispatch<React.SetStateAction<number>>;
