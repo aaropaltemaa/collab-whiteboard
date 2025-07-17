@@ -1,9 +1,10 @@
-import { Stage, Layer, Rect, Line, Ellipse } from "react-konva";
+import { Stage, Layer } from "react-konva";
 import { useState, useRef } from "react";
 import { nanoid } from "nanoid";
 import Konva from "konva";
 import type { Shape } from "../../types";
 import NavBar from "../NavBar";
+import ShapeRenderer from "./ShapeRenderer";
 
 const Canvas = () => {
   const [shapes, setShapes] = useState<Shape[]>([]);
@@ -104,10 +105,20 @@ const Canvas = () => {
     isDrawing.current = false;
   };
 
+  const handleShapeSelect = (shapeId: string) => {
+    setSelectedShapeId(shapeId);
+  };
+
+  const handleShapeDragEnd = (updatedShape: Shape) => {
+    setShapes((prev) =>
+      prev.map((s) => (s.id === updatedShape.id ? updatedShape : s))
+    );
+  };
+
   return (
     <>
       <NavBar
-        selectedTool={selectedTool} // Add this line
+        selectedTool={selectedTool}
         selectedColor={selectedColor}
         setSelectedTool={setSelectedTool}
         setSelectedColor={setSelectedColor}
@@ -122,70 +133,15 @@ const Canvas = () => {
         onMouseUp={handleMouseUp}
       >
         <Layer>
-          {shapes.map((shape) => {
-            if (shape.type === "rectangle")
-              return (
-                <Rect
-                  key={shape.id}
-                  x={shape.x}
-                  y={shape.y}
-                  width={200}
-                  height={100}
-                  fill={shape.color}
-                  strokeWidth={shape.strokeWidth}
-                  draggable
-                  onClick={() => setSelectedShapeId(shape.id)}
-                  shadowBlur={shape.id === selectedShapeId ? 10 : 0}
-                  shadowColor={shape.id === selectedShapeId ? "blue" : ""}
-                  shadowOpacity={shape.id === selectedShapeId ? 0.5 : 0}
-                  onDragEnd={(e) => {
-                    const pos = e.target.position();
-                    setShapes((prev) =>
-                      prev.map((s) =>
-                        s.id === shape.id ? { ...s, x: pos.x, y: pos.y } : s
-                      )
-                    );
-                  }}
-                />
-              );
-            if (shape.type === "line")
-              return (
-                <Line
-                  key={shape.id}
-                  points={shape.points}
-                  stroke={shape.color}
-                  strokeWidth={shape.strokeWidth}
-                />
-              );
-            if (shape.type === "ellipse") {
-              return (
-                <Ellipse
-                  key={shape.id}
-                  x={shape.x}
-                  y={shape.y}
-                  radiusX={shape.radiusX}
-                  radiusY={shape.radiusY}
-                  stroke={shape.color}
-                  strokeWidth={shape.strokeWidth}
-                  draggable
-                  onClick={() => setSelectedShapeId(shape.id)}
-                  shadowBlur={shape.id === selectedShapeId ? 10 : 0}
-                  shadowColor={shape.id === selectedShapeId ? "blue" : ""}
-                  shadowOpacity={shape.id === selectedShapeId ? 0.5 : 0}
-                  onDragEnd={(e) => {
-                    const pos = e.target.position();
-                    setShapes((prev) =>
-                      prev.map((s) =>
-                        s.id === shape.id ? { ...s, x: pos.x, y: pos.y } : s
-                      )
-                    );
-                  }}
-                />
-              );
-            }
-
-            return null; // Add return null for other shape types
-          })}
+          {shapes.map((shape) => (
+            <ShapeRenderer
+              key={shape.id}
+              shape={shape}
+              isSelected={shape.id === selectedShapeId}
+              onSelect={() => handleShapeSelect(shape.id)}
+              onDragEnd={handleShapeDragEnd}
+            />
+          ))}
         </Layer>
       </Stage>
     </>
