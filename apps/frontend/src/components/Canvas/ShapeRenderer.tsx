@@ -1,4 +1,4 @@
-import { Rect, Line, Ellipse, Text } from "react-konva";
+import { Rect, Line, Ellipse, Text, Group } from "react-konva";
 import type { Shape } from "../../types";
 import type { KonvaEventObject } from "konva/lib/Node";
 
@@ -25,27 +25,27 @@ const ShapeRenderer = ({
 
   if (shape.type === "rectangle") {
     return (
-      <>
+      <Group
+        x={shape.x}
+        y={shape.y}
+        draggable
+        onClick={onSelect}
+        onDblClick={onDoubleClick}
+        onDragEnd={handleDragEnd}
+      >
         <Rect
-          key={shape.id}
-          x={shape.x}
-          y={shape.y}
           width={200}
           height={100}
           fill={shape.color}
           strokeWidth={shape.strokeWidth}
-          draggable
-          onClick={onSelect}
-          onDblClick={onDoubleClick}
           shadowBlur={isSelected ? 10 : 0}
           shadowColor={isSelected ? "blue" : ""}
           shadowOpacity={isSelected ? 0.5 : 0}
-          onDragEnd={handleDragEnd}
         />
         {shape.text && (
           <Text
-            x={shape.x + 10}
-            y={shape.y + 40}
+            x={10}
+            y={40}
             text={shape.text}
             fontSize={16}
             fill="black"
@@ -54,14 +54,13 @@ const ShapeRenderer = ({
             verticalAlign="middle"
           />
         )}
-      </>
+      </Group>
     );
   }
 
   if (shape.type === "line") {
     return (
       <Line
-        key={shape.id}
         points={shape.points}
         stroke={shape.color}
         strokeWidth={shape.strokeWidth}
@@ -71,27 +70,25 @@ const ShapeRenderer = ({
 
   if (shape.type === "ellipse") {
     return (
-      <>
+      <Group
+        x={shape.x}
+        y={shape.y}
+        draggable
+        onClick={onSelect}
+        onDblClick={onDoubleClick}
+        onDragEnd={handleDragEnd}
+      >
         <Ellipse
-          key={shape.id}
-          x={shape.x}
-          y={shape.y}
           radiusX={shape.radiusX}
           radiusY={shape.radiusY}
           stroke={shape.color}
           strokeWidth={shape.strokeWidth}
-          draggable
-          onClick={onSelect}
-          onDblClick={onDoubleClick}
           shadowBlur={isSelected ? 10 : 0}
           shadowColor={isSelected ? "blue" : ""}
           shadowOpacity={isSelected ? 0.5 : 0}
-          onDragEnd={handleDragEnd}
         />
         {shape.text && (
           <Text
-            x={shape.x}
-            y={shape.y}
             text={shape.text}
             fontSize={16}
             fill="black"
@@ -102,7 +99,7 @@ const ShapeRenderer = ({
             offsetY={8}
           />
         )}
-      </>
+      </Group>
     );
   }
 
