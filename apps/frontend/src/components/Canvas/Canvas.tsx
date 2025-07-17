@@ -12,6 +12,7 @@ const Canvas = () => {
   >("rectangle");
   const [selectedColor, setSelectedColor] = useState<string>("#000000");
   const [selectedStrokeWidth, setSelectedStrokeWidth] = useState<number>(2);
+  const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   const isDrawing = useRef(false);
 
   const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -132,6 +133,10 @@ const Canvas = () => {
                   fill={shape.color}
                   strokeWidth={shape.strokeWidth}
                   draggable
+                  onClick={() => setSelectedShapeId(shape.id)}
+                  shadowBlur={shape.id === selectedShapeId ? 10 : 0}
+                  shadowColor={shape.id === selectedShapeId ? "blue" : ""}
+                  shadowOpacity={shape.id === selectedShapeId ? 0.5 : 0}
                   onDragEnd={(e) => {
                     const pos = e.target.position();
                     setShapes((prev) =>
@@ -162,6 +167,10 @@ const Canvas = () => {
                   stroke={shape.color}
                   strokeWidth={shape.strokeWidth}
                   draggable
+                  onClick={() => setSelectedShapeId(shape.id)}
+                  shadowBlur={shape.id === selectedShapeId ? 10 : 0}
+                  shadowColor={shape.id === selectedShapeId ? "blue" : ""}
+                  shadowOpacity={shape.id === selectedShapeId ? 0.5 : 0}
                   onDragEnd={(e) => {
                     const pos = e.target.position();
                     setShapes((prev) =>
