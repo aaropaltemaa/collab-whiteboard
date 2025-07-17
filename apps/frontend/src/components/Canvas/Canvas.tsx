@@ -1,6 +1,7 @@
 import { Stage, Layer } from "react-konva";
 import NavBar from "../NavBar";
 import ShapeRenderer from "./ShapeRenderer";
+import TextEditingOverlay from "./TextEditingOverlay";
 import useDrawing from "../../hooks/useDrawing";
 
 const Canvas = () => {
@@ -10,6 +11,8 @@ const Canvas = () => {
     selectedColor,
     selectedStrokeWidth,
     selectedShapeId,
+    editingShapeId,
+    editingText,
     setSelectedTool,
     setSelectedColor,
     setSelectedStrokeWidth,
@@ -18,7 +21,14 @@ const Canvas = () => {
     handleMouseUp,
     handleShapeSelect,
     handleShapeDragEnd,
+    handleShapeDoubleClick,
+    handleTextSave,
+    handleTextCancel,
   } = useDrawing();
+
+  const editingShape = editingShapeId
+    ? shapes.find((s) => s.id === editingShapeId)
+    : null;
 
   return (
     <>
@@ -45,10 +55,20 @@ const Canvas = () => {
               isSelected={shape.id === selectedShapeId}
               onSelect={() => handleShapeSelect(shape.id)}
               onDragEnd={handleShapeDragEnd}
+              onDoubleClick={() => handleShapeDoubleClick(shape.id)}
             />
           ))}
         </Layer>
       </Stage>
+      {editingShapeId && editingShape && (
+        <TextEditingOverlay
+          x={"x" in editingShape ? editingShape.x : 0}
+          y={"y" in editingShape ? editingShape.y : 0}
+          initialText={editingText}
+          onSave={(text) => handleTextSave(editingShapeId, text)}
+          onCancel={handleTextCancel}
+        />
+      )}
     </>
   );
 };

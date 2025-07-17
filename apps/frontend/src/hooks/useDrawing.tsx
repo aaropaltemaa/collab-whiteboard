@@ -11,6 +11,8 @@ const useDrawing = () => {
   const [selectedColor, setSelectedColor] = useState<string>("#000000");
   const [selectedStrokeWidth, setSelectedStrokeWidth] = useState<number>(2);
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
+  const [editingShapeId, setEditingShapeId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState<string>("");
   const isDrawing = useRef(false);
 
   const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -112,6 +114,27 @@ const useDrawing = () => {
     );
   };
 
+  const handleShapeDoubleClick = (shapeId: string) => {
+    const shape = shapes.find((s) => s.id === shapeId);
+    if (shape && (shape.type === "rectangle" || shape.type === "ellipse")) {
+      setEditingShapeId(shapeId);
+      setEditingText(shape.text || "");
+    }
+  };
+
+  const handleTextSave = (shapeId: string, text: string) => {
+    setShapes((prev) =>
+      prev.map((s) => (s.id === shapeId ? { ...s, text } : s))
+    );
+    setEditingShapeId(null);
+    setEditingText("");
+  };
+
+  const handleTextCancel = () => {
+    setEditingShapeId(null);
+    setEditingText("");
+  };
+
   return {
     // State
     shapes,
@@ -119,11 +142,14 @@ const useDrawing = () => {
     selectedColor,
     selectedStrokeWidth,
     selectedShapeId,
+    editingShapeId,
+    editingText,
 
     // Setters
     setSelectedTool,
     setSelectedColor,
     setSelectedStrokeWidth,
+    setEditingText,
 
     // Event handlers
     handleMouseDown,
@@ -131,6 +157,9 @@ const useDrawing = () => {
     handleMouseUp,
     handleShapeSelect,
     handleShapeDragEnd,
+    handleShapeDoubleClick,
+    handleTextSave,
+    handleTextCancel,
   };
 };
 

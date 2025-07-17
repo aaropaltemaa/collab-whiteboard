@@ -6,6 +6,7 @@ export type Shape =
       y: number;
       color: string;
       strokeWidth: number;
+      text?: string; 
     }
   | {
       id: string;
@@ -15,19 +16,19 @@ export type Shape =
       strokeWidth: number;
     }
   | {
-  id: string;
-  type: "ellipse";
-  x: number;
-  y: number;
-  radiusX: number;
-  radiusY: number;
-  color: string;
-  strokeWidth: number;
-}
-
+      id: string;
+      type: "ellipse";
+      x: number;
+      y: number;
+      radiusX: number;
+      radiusY: number;
+      color: string;
+      strokeWidth: number;
+      text?: string; 
+    };
 
 export type NavBarProps = {
-  selectedTool: "rectangle" | "pen" | "ellipse"; // Add this line
+  selectedTool: "rectangle" | "pen" | "ellipse"; 
   setSelectedTool: React.Dispatch<React.SetStateAction<"rectangle" | "pen" | "ellipse">>;
   setSelectedColor: React.Dispatch<React.SetStateAction<string>>;
   setSelectedStrokeWidth: React.Dispatch<React.SetStateAction<number>>;
