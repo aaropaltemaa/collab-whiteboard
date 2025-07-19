@@ -25,6 +25,15 @@ export type Shape =
       color: string;
       strokeWidth: number;
       text?: string; 
+    }
+  | {
+      id: string;
+      type: "connector";
+      startShapeId: string;
+      endShapeId: string;
+      points: number[]; // [startX, startY, endX, endY]
+      color: string;
+      strokeWidth: number;
     };
 
 export type NavBarProps = {

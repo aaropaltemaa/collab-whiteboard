@@ -6,7 +6,7 @@ import type { Shape } from "../types";
 const useDrawing = () => {
   const [shapes, setShapes] = useState<Shape[]>([]);
   const [selectedTool, setSelectedTool] = useState<
-    "rectangle" | "pen" | "ellipse"
+    "rectangle" | "pen" | "ellipse" | "connector"
   >("rectangle");
   const [selectedColor, setSelectedColor] = useState<string>("#000000");
   const [selectedStrokeWidth, setSelectedStrokeWidth] = useState<number>(2);
